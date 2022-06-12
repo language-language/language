@@ -1,0 +1,25 @@
+#!/usr/bin/env fox
+
+# comment
+
+# other thing
+/* blah */
+
+lang go ([
+f	import (
+		"os"
+	)
+]) /* AHA */ lang ([
+
+])
+
+fn uwu ({
+	lang js ([
+		console.log('foo')
+	])
+})
+
+# :))
+/* fff */
+
+
