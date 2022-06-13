@@ -4,38 +4,58 @@ const util = {
 	doEat(ctx: Context, match: RegExpMatchArray) {
 		const newStartIndex = ctx.text.indexOf(match[0]) + match[0].length
 		ctx.text = ctx.text.slice(newStartIndex)
+
+		ctx.position += newStartIndex
+
+		return { start: ctx.position - newStartIndex, end: ctx.position - 1 }
 	},
 	makeEat(ctx: Context, regex: RegExp) {
 		const match = ctx.text.match(regex)
 		if (match !== null) {
-			util.doEat(ctx, match)
+			const { start, end } = util.doEat(ctx, match)
+			ctx.didEat = true
+
 			return {
 				foundIt: true,
-				match: match[0],
+				start,
+				end,
+				data: match.groups,
+				content: match[0],
 			}
 		} else {
 			return {
 				foundIt: false,
-				match: '',
+				start: 0,
+				end: 0,
+				content: '',
 			}
 		}
 	},
-	logResult(ctx: Context, result: string) {
+	logResult(ctx: Context, result: Node) {
 		console.log(
 			'result',
-			[result],
+			result,
 			ctx.text.slice(0, 10).replaceAll('\n', '<NL>')
 		)
 	},
 }
 
-type EatReturn = {
-	foundIt: boolean
-	match: string
+type Node = {
+	foundIt?: boolean
+	type: 'comment' | 'language' | 'function' | 'empty'
+	start: number
+	end: number
+	data?: Record<string, unknown>
+	content: string
+	children?: Node[]
+	parent?: Node
 }
+type Ast = Node[]
 
 type Context = {
 	text: string
+	position: number
+	didEat: boolean
 }
 
 await main()
@@ -43,83 +63,90 @@ async function main() {
 	const content = await Deno.readTextFile('test.fox')
 	const ctx: Context = {
 		text: content,
+		position: 0,
+		didEat: false,
 	}
 
-	let foundIt, match
+	const ast: Ast = []
+	let node: Node
+	let mode: 'default' | 'in-function' = 'default'
 	while (ctx.text.length !== 0) {
-		let didEat = false
+		ctx.didEat = false
 
-		;({ foundIt, match } = eatCommentBlock(ctx))
-		if (foundIt) {
-			util.logResult(ctx, match)
-			didEat = true
+		if (mode === 'default') {
+			eatCommentBlock(ctx, ast)
+			eatCommentInline(ctx, ast)
+			eatBlankLine(ctx, ast)
+			eatLanguageBlock(ctx, ast)
+			eatFunctionBlock(ctx, ast)
+		} else if (mode === 'in-function') {
+			eatCommentBlock(ctx, ast)
+			eatCommentInline(ctx, ast)
+			eatBlankLine(ctx, ast)
+			eatLanguageBlock(ctx, ast)
 		}
 
-		;({ foundIt, match } = eatCommentInline(ctx))
-		if (foundIt) {
-			util.logResult(ctx, match)
-			didEat = true
-		}
-
-		;({ foundIt, match } = eatBlankLine(ctx))
-		if (foundIt) {
-			util.logResult(ctx, match)
-			didEat = true
-		}
-
-		;({ foundIt, match } = eatLangBlock(ctx))
-		if (foundIt) {
-			util.logResult(ctx, match)
-			didEat = true
-		}
-
-		;({ foundIt, match } = eatFunctionBlock(ctx))
-		if (foundIt) {
-			util.logResult(ctx, match)
-			didEat = true
-		}
-
-		if (didEat === false) {
-			if (ctx.text.length !== 0) {
-				console.log('Exiting from parsing early')
-				console.log('---')
-				console.log(ctx.text)
-				console.log('---')
-			}
+		if (ctx.didEat === false && ctx.text.length !== 0) {
+			console.log('Exiting from parsing early')
+			console.log('---')
+			console.log(ctx.text)
+			console.log('---')
 			eatAll(ctx)
 			break
 		}
 	}
+
+	console.log(ast)
 }
 
-function eatFunctionBlock(ctx: Context): EatReturn {
+function eatFunctionBlock(ctx: Context, ast: Ast): Node {
 	const regex = /^\s*fn\s+(?<name>[a-zA-Z_]+\s*)?\(\{(?<body>.*?)\}\)/su
-	return util.makeEat(ctx, regex)
+	const node: Node = { type: 'function', ...util.makeEat(ctx, regex) }
+	if (node.foundIt) {
+		ast.push(node)
+	}
+	return node
 }
 
-function eatLangBlock(ctx: Context): EatReturn {
+function eatLanguageBlock(ctx: Context, ast: Ast): Node {
 	const regex = /^\s*lang\s+(?<language>[a-zA-Z_]+\s+)?\(\[(?<body>.*?)\]\)/su
-	return util.makeEat(ctx, regex)
+	const node: Node = { type: 'language', ...util.makeEat(ctx, regex) }
+	if (node.foundIt) {
+		ast.push(node)
+	}
+	return node
 }
 
-function eatCommentInline(ctx: Context): EatReturn {
-	const regex = /^\s*\/\*.*?\*\//su
-	return util.makeEat(ctx, regex)
+function eatCommentInline(ctx: Context, ast: Ast): Node {
+	const regex = /^\s*\/\*(?<comment>.*?)\*\//su
+	const node: Node = { type: 'comment', ...util.makeEat(ctx, regex) }
+	if (node.foundIt) {
+		ast.push(node)
+	}
+	return node
 }
 
-function eatCommentBlock(ctx: Context): EatReturn {
-	const regex = /^\s*#.*?\n/su
-	return util.makeEat(ctx, regex)
+function eatCommentBlock(ctx: Context, ast: Ast): Node {
+	const regex = /^\s*(#|\/\/)(?<comment>.*?)\n/su
+	const node: Node = { type: 'comment', ...util.makeEat(ctx, regex) }
+	if (node.foundIt) {
+		ast.push(node)
+	}
+	return node
 }
 
-function eatBlankLine(ctx: Context): EatReturn {
+function eatBlankLine(ctx: Context, ast: Ast): Node {
 	const regex = /^\s*\n/su
-	return util.makeEat(ctx, regex)
+	const node: Node = { type: 'empty', ...util.makeEat(ctx, regex) }
+	if (node.foundIt) {
+		ast.push(node)
+	}
+	return node
 }
 
-function eatAll(ctx: Context): EatReturn {
+function eatAll(ctx: Context): void {
 	const regex = /^.*/su
-	return util.makeEat(ctx, regex)
+	util.makeEat(ctx, regex)
 }
 
 function die(msg: string): never {

@@ -1,12 +1,12 @@
-#!/usr/bin/env fox
+#!/dd
 
 # comment
 
-# other thing
 /* blah */
+// something else
 
-lang go ([
-f	import (
+lang go ([ # blah
+	import (
 		"os"
 	)
 ]) /* AHA */ lang ([
