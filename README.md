@@ -1,25 +1,44 @@
-# Fox Lang
+# Language language
 
-Write once, transpile everywhere.
+First, include `compiler.m4` and write your code:
 
-> Ease multi-language authoring by limiting interfaces to those that are both pure and commonplace. Non-traditional interfaces are trivially hand-written, composing the transpiled output
+```m4
+fox_shebang()dnl
+fox_comment_line(`deno-lint-ignore-file')dnl
+fox_comment_line(`START HERE')dnl
+fox_var(a, `"Hello, "')
+fox_var(b, `"World!"')
+fox_function(
+	`string_concat',
+	`left, right',
+	`fox_var(result, `left + right')
+	fox_return(result)'dnl
+)
 
-STATUS: EARLY DEVELOPMENT
+fox_var(s, fox_call(`string_concat', `a, b'))
+fn_print_stdout(s)dnl
+```
 
-## Use when
+Then, run `./language compile javascript:js`. Code will be generated:
 
-- FFI doesn't cut it
-- Performance overhead is negligible
-- Code is rather generic (in terms of types and their behavior)
+```js
+#!/usr/bin/env node
+// deno-lint-ignore-file
+// START HERE
+let a = "Hello, "
+let b = "World!"
+function string_concat(left, right) {
+	let result = left + right
+	return result
+}
 
-## Usage
+let s = string_concat(a, b)
+console.log(s)
+```
 
-Don't use yet.
+Currently, JavaScript, Python, and Ruby are supported.
 
-1. A custom GitHub organization for holding the transpiled code. Usually, it has the name of `$USER-fox`
-2. A custom GitHub bot for making commits (so your main account doesn't rack up hundreds of commits in a single day)
+Concepts implemented:
 
-## Examples
-
-- [./test.fox](./test.fox)
-- [fox-xdg-base-dir](https://github.com/hyperupcall/fox-xdg-base-dir)
+- Functions
+- Variables
