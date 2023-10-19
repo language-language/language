@@ -16,7 +16,7 @@ STATUS: EARLY DEVELOPMENT
 
 Don't use yet.
 
-1. A custom GitHub organization for holding the transpiled code
+1. A custom GitHub organization for holding the transpiled code. Usually, it has the name of `$USER-fox`
 2. A custom GitHub bot for making commits (so your main account doesn't rack up hundreds of commits in a single day)
 
 ## Examples
