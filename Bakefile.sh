@@ -15,7 +15,7 @@ task.m4() {
 		m4 \
 			--define=ARG_LANGUAGE="${map[$script]}" \
 			./compiler.m4 \
-			> "$script"
+			> ./output/"$script"
 	done
 	printf '%s\n' "Compiled M4."
 	for script in "${scripts[@]}"; do

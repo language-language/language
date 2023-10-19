@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+case $2 in
+	javascript:js|python:py|ruby|rb) ;;
+	*) printf '%s\n' "language: language not supported: $2" >&2
+esac
+case $1 in
+	compile)
+		printf '%s\n' "> compile: ./output/script.${2#*:}"
+		m4 --define=ARG_LANGUAGE="${2%:*}" "${0%/*}/compiler.m4" > "./output/script.${2#*:}" ;;
+	run)
+		printf '%s\n' "> run: ./output/script.${2#*:}"
+		"$0" compile "${@:2}"
+		"./output/script.${2#*:}" "${@:3}" ;;
+	'') printf '%s\n' "language: argument required" >&2 ;;
+	*) printf '%s\n' "language: unknown command: $1" >&2
+esac
