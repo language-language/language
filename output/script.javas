@@ -1,0 +1,11 @@
+#!/usr/bin/env -S java --source 11	
+// deno-lint-ignore-file
+// START HERE
+class Program {
+			UNKNOWN_LANGUAGE_FUNCTION
+ 
+var a = "Hello, "
+var b = "World!"
+var s = string_concat(a, b)
+System.out.println(s)
+}

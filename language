@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 case $2 in
-	javascript:js|python:py|ruby|rb) ;;
+	javascript:js|python:py|ruby|rb|java|javas) ;;
 	*) printf '%s\n' "language: language not supported: $2" >&2
 esac
 case $1 in
@@ -11,6 +11,7 @@ case $1 in
 	run)
 		printf '%s\n' "> run: ./output/script.${2#*:}"
 		"$0" compile "${@:2}"
+		chmod +x "./output/script.${2#*:}"
 		"./output/script.${2#*:}" "${@:3}" ;;
 	'') printf '%s\n' "language: argument required" >&2 ;;
 	*) printf '%s\n' "language: unknown command: $1" >&2
